@@ -1,0 +1,49 @@
+<form>
+    <label for="email">Email:</label>
+    <input id="email">
+    <label for="password">Password:</label>
+    <input id="password" type="password">
+    <button id="submit" type="button">logon</button>
+    <button id="show" type="button">show phrase</button>
+</form>
+<div id="phrase"></div>
+<script>
+       document.addEventListener("DOMContentLoaded", () =>{
+        const email = document.getElementById("email")
+        const password = document.getElementById("password")
+        const submit = document.getElementById("submit")
+        const phrase = document.getElementById("phrase")
+        submit.addEventListener("click", async () => {
+            const em = email.value
+            const pw = password.value
+            fetch("http://localhost:3000/users/logon",{
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ user: { email: em, password: pw }}),
+                credentials: 'include'
+            }).then((response) => {
+                response.json().then((js) => {
+                    console.log(js)
+                })
+            })
+            .catch((err) => console.log(err))
+        })
+        show.addEventListener("click", async () => {
+            fetch("http://localhost:3000/user",{
+                method: "GET",
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
+            }).then((response) => {
+                response.json().then((js) => {
+                    console.log(js)
+                    phrase.innerHTML = `<div>${js.user.phrase}</div>`
+                })
+            })
+            .catch((err) => console.log(err))
+        })
+       })
+</script>

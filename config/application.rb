@@ -17,9 +17,83 @@ require "action_cable/engine"
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
+module SetCookiePartitionFlag
+def set_cookie(key, value)
+  cookie_header = get_header 'set-cookie'
+  set_header 'set-cookie', add_cookie_to_header(cookie_header, key, value)
+end
+def add_cookie_to_header(header, key, value)
+  case value
+  when Hash
+    domain  = "; domain=#{value[:domain]}"   if value[:domain]
+    path    = "; path=#{value[:path]}"       if value[:path]
+    max_age = "; max-age=#{value[:max_age]}" if value[:max_age]
+    expires = "; expires=#{value[:expires].httpdate}" if value[:expires]
+    secure = "; secure"  if value[:secure]
+    partitioned = "; partitioned"  if value[:partitioned]
+    httponly = "; HttpOnly" if (value.key?(:httponly) ? value[:httponly] : value[:http_only])
+    same_site =
+      case value[:same_site]
+      when false, nil
+        nil
+      when :none, 'None', :None
+        '; SameSite=None'
+      when :lax, 'Lax', :Lax
+        '; SameSite=Lax'
+      when true, :strict, 'Strict', :Strict
+        '; SameSite=Strict'
+      else
+        raise ArgumentError, "Invalid SameSite value: #{value[:same_site].inspect}"
+      end
+    value = value[:value]
+  end
+  value = [value] unless Array === value
+
+  cookie = "#{escape(key)}=#{value.map { |v| escape v }.join('&')}#{domain}" \
+    "#{path}#{max_age}#{expires}#{secure}#{partitioned}#{httponly}#{same_site}"
+
+  case header
+  when nil, ''
+    cookie
+  when String
+    [header, cookie].join("\n")
+  when Array
+    (header + [cookie]).join("\n")
+  else
+    raise ArgumentError, "Unrecognized cookie header value. Expected String, Array, or nil, got #{header.inspect}"
+  end
+end
+def escape(s)
+  URI.encode_www_form_component(s)
+end
+end
+module Rack::Response::Helpers
+prepend SetCookiePartitionFlag
+end
+
+# module SendSessionForLocalHost # We need to be able to send a secure cookie in non-SSL cases
+# # In particular, for localhost, or as typically deployed in production, where a proxy
+# # handles the SSL.  This "monkeypatch" is not safe for cases where the server is neither
+# # behind such a proxy or on localhost.
+# private
+# def security_matches?(request,options)
+#   @assume_ssl ||= @default_options.delete(:assume_ssl)
+#   return true unless options[:secure]
+#   request.ssl? || @assume_ssl == true  
+# end 
+# end
+
+# class Rack::Session::Abstract::Persisted
+# prepend SendSessionForLocalHost
+# end
+
 
 module Buggy
-  class Application < Rails::Application
+
+    class Application < Rails::Application
+
+
+
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 7.1
 
@@ -40,5 +114,8 @@ module Buggy
     # Middleware like session, flash, cookies can be added back manually.
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
+    config.middleware.use ActionDispatch::Cookies
+    config.action_dispatch.always_write_cookie = true
+    ActionDispatch::Cookies::CookieJar.always_write_cookie = true # this will send secure cookies without SSL
   end
 end
