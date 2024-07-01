@@ -7,15 +7,18 @@ class UsersController < ApplicationController
         u_params[:password_digest] = BCrypt::Engine.hash_secret(u_params[:password], salt)
         u_params.delete(:password)
         user=User.create(u_params)
-        if !user.errors.size
+        if user.errors.empty?
             render json: { message: "A user record for #{user_params["name"]} was created."}, status: 201
         else
-            render json: { message: "Creation of the user record failed. " + user.errors.full_messages.join(". ") }
+            render json: { message: "Creation of the user record failed. " + user.errors.full_messages.join(". ") }, status: 400
         end
     end
 
     def logon
         salt = Rails.application.credentials.password_salt
+        # puts "masterkey"+ENV["RAILS_MASTER_KEY"].to_s + "masterkey"
+        # puts "salt" + salt.to_s + "salt"
+        # puts "sbase" + Rails.application.credentials.secret_key_base.to_s + "sbase"
         password_hash = BCrypt::Engine.hash_secret(logon_params[:password], salt)
         users = User.where("email = '#{logon_params[:email]}' AND password_digest = '#{password_hash}'")
         if users.length == 0
