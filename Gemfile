@@ -49,3 +49,5 @@ end
 gem "jwt", "~> 2.8"
 
 gem "bcrypt", "~> 3.1"
+
+gem "strong_password", "~> 0.0.10"

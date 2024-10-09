@@ -1,6 +1,6 @@
 # syntax = docker/dockerfile:1
 
-FROM ruby:3.2.1
+FROM ruby:3.2.1 AS buggy-corrected
 
 # Set the working directory
 WORKDIR /app
