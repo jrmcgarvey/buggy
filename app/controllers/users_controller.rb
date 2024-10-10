@@ -1,6 +1,6 @@
 class UsersController < ApplicationController
   include ActionController::Cookies
-  before_action :user_logged_in, only: %i[setphrase getuser]
+  before_action :user_logged_in?, only: %i[setphrase getuser]
 
   def register
     salt = Rails.application.credentials.password_salt
