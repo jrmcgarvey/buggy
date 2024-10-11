@@ -1,49 +1,210 @@
+<div>
+    <h2>Logged On User</h2>
+    <div id="name2"></div>
+    <div id="email2"></div>
+    <div id="phrase2"></div>
+</div>
 <form>
-    <label for="email">Email:</label>
-    <input id="email">
-    <label for="password">Password:</label>
-    <input id="password" type="password">
-    <button id="submit" type="button">logon</button>
-    <button id="show" type="button">show phrase</button>
+    <div>
+        <h2>registration</h2>
+        <div>
+            <label for="name">Name:</label>
+            <input id="name">
+            </div>
+        <div>
+        <label for="email">Email:</label>
+        <input id="email">
+        </div>
+        <div>
+        <label for="password">Password:</label>
+        <input id="password" type="password">
+        </div>
+        <div>
+        <button id="submit" type="button">register</button>
+        </div>
+    </div>
+    <div>
+        <h2>Logon</h2>
+        <div>
+        <label for="email1">Email:</label>
+        <input id="email1">
+        </div>
+        <div>
+        <label for="password1">Password:</label>
+        <input id="password1" type="password">
+        </div>
+        <div>
+        <button id="submit1" type="button">logon</button>
+        </div>
+    </div>
+    <div>
+        <h2>Set Phrase</h2>
+        <div>
+            <label for="phrase3">Phrase</label>
+            <input id="phrase3">
+        </div>
+        <button id="submit3" type="button">set</button>
+        <div>
+    </div>
+    <div>
+        <h2>Log Off</h2>
+        <button id="submit4" type="button">logoff</button>
+    </div>
 </form>
-<div id="phrase"></div>
+
+    <div>
+        <h2>Messages</h2>
+        <div id="message"></div>
+    </div>
 <script>
+    function getCSRFtoken() {
+        console.log('cookies', document.cookie)
+        const cookieArray = document.cookie.split(";")
+        const cookieArray2 = cookieArray.map((c)=>c.trim())
+        const cookie = cookieArray2.find((c) => c.startsWith("CSRF_TOKEN="))
+        cookieValue = cookie.split("=")[1]
+        return cookieValue
+    }
        document.addEventListener("DOMContentLoaded", () =>{
+        // register
+        const name = document.getElementById("name")
         const email = document.getElementById("email")
         const password = document.getElementById("password")
         const submit = document.getElementById("submit")
-        const phrase = document.getElementById("phrase")
+        // logon
+        const emai11 = document.getElementById("email1")
+        const password1 = document.getElementById("password1")
+        const submit1 = document.getElementById("submit1")
+        // show
+        const name2 = document.getElementById("name2")
+        const email2 = document.getElementById("email2")
+        const phrase2 = document.getElementById("phrase2")
+        // set
+        const phrase3 = document.getElementById("phrase3")
+        const submit3 = document.getElementById("submit3")
+        // logoff
+        const submit4 = document.getElementById("submit4")
+        // message
+        const message = document.getElementById("message")
+
+        // register
         submit.addEventListener("click", async () => {
-            const em = email.value
-            const pw = password.value
+            fetch("http://localhost:3000/users",{
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ user: { name: name.value, email: email.value, password: password.value}})
+                //credentials: 'include'
+            }).then((response) => {
+                response.json().then((js) => {
+                    message.textContent=js.message
+                })
+            })
+            .catch((err) => {
+                message.textContent(err.message)
+            })
+        })
+        submit1.addEventListener("click", async () => {
             fetch("http://localhost:3000/users/logon",{
                 method: "POST",
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ user: { email: em, password: pw }}),
-                credentials: 'include'
+                body: JSON.stringify({ user: { email: email1.value, password: password1.value}})
+                //credentials: 'include'
             }).then((response) => {
                 response.json().then((js) => {
-                    console.log(js)
+                    message.textContent = js.message
                 })
             })
-            .catch((err) => console.log(err))
+            .catch((err) => {
+                message.textContent(err)
+            })
         })
-        show.addEventListener("click", async () => {
-            fetch("http://localhost:3000/user",{
+        // show
+            fetch("http://localhost:3000/user", {
                 method: "GET",
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 credentials: 'include'
             }).then((response) => {
+                if (response.status === 200) {
+                    response.json().then((js) => {
+                    const userHash = js
+                    console.log("userHash", userHash)
+                    name2.textContent = "name: " + userHash.user.name
+                    email2.textContent = "email: " + userHash.user.email
+                    if (!userHash.user.phrase) {
+                        userHash.user['phrase'] = ''
+                    }
+                    phrase2.textContent = "phrase: " + userHash.user.phrase
+                })
+                } else {
+                    name2.textContent = "No user is logged in."
+                    email2.textContent = ""
+                    phrase2.textContent = ""
+                }
+
+            })
+            .catch((err) => {
+                message.textContent(err)
+            })
+        
+        // set
+        submit3.addEventListener("click", async () => {
+            const token = getCSRFtoken()
+            let headers = {'Content-Type': 'application/json'}
+            if (token) {
+                headers["X-CSRF-TOKEN"] = token
+            } 
+            console.log('headers', headers)
+            fetch("http://localhost:3000/user/update",{
+                method: "POST",
+                body: JSON.stringify({ phrase: phrase3.value}),
+                credentials: 'include',
+                headers: headers
+            }).then((response) => {
                 response.json().then((js) => {
-                    console.log(js)
-                    phrase.innerHTML = `<div>${js.user.phrase}</div>`
+                    respHash = js
+                    if (response.status === 200) {
+                        phrase2.textContent = respHash.phrase
+                    } else {
+                        message.textContent = respHash.message
+                    }
                 })
             })
-            .catch((err) => console.log(err))
+            .catch((err) => {
+                message.textContent(err)
+            })
         })
-       })
+        //logoff
+        submit4.addEventListener("click", async () => {
+            const token = getCSRFtoken()
+            let headers = {'Content-Type': 'application/json'}
+            if (token) {
+                headers["X-CSRF-TOKEN"] = token
+            } 
+            fetch("http://localhost:3000/users/logoff",{
+                method: "DELETE",
+                headers: headers,
+                body: "{}",
+                credentials: 'include'
+            }).then((response) => {
+                response.json().then((js) => {
+                    respHash = js
+                    message.textContent = respHash.message
+                    if (response.status===200) {
+                        name2.textContent = "No user is logged on."
+                        email2.textContent = ""
+                        phrase2.textContent = ""
+                    }
+                })
+            })
+            .catch((err) => {
+                message.textContent(err)
+            })
+        })
+    })
 </script>

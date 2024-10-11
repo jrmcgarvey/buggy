@@ -1,7 +1,7 @@
 class UsersController < ApplicationController
   include ActionController::Cookies
-  before_action :user_logged_in?, only: %i[setphrase getuser]
-  before_action :validate_csrf, only: :setphrase
+  before_action :user_logged_in?, only: %i[setphrase getuser logoff]
+  before_action :validate_csrf, only: %i[setphrase logoff]
 
   def register
     # salt = Rails.application.credentials.password_salt
@@ -28,13 +28,11 @@ class UsersController < ApplicationController
     #
     # if users.empty?
     #   render json: { message: 'Authentication failed.' }, status: 401
-    @user = nil
     begin
       @user = User.find_by_email(logon_params[:email].downcase)
     rescue ActiveRecord::RecordNotFound
       @user = nil
     end
-    puts('user',@user)
     if !@user || !@user.authenticate(logon_params[:password])
       render json: { message: 'Authentication failed.' }, status: 401
     else
@@ -51,18 +49,17 @@ class UsersController < ApplicationController
       cookies['CSRF_TOKEN'] = { value: csrf_token, same_site: :Lax, secure: secure_cookie }
       @user.reload
       @user.phrase = '' unless @user.phrase
-      render json: { user: { name: @user.name, phrase: @user.phrase } }, status: 201
+      render json: { message: "You have logged in", user: { name: @user.name, email: @user.email, phrase: @user.phrase } }, status: 201
     end
   end
 
   def setphrase
-    @user.update(phrase_params, {validate: false})
-    render json: { message: 'The phrase was updated.',
-                   user: { name: @user.name, phrase: @user.phrase } }, status: 200
+    @user.update(phrase_params)
+    render json: { message: 'The phrase was updated.', phrase: phrase_params[:phrase]}, status: 200
   end
 
   def getuser
-    render json: { user: { name: @user.name, phrase: @user.phrase } }, status: 200
+    render json: { user: { name: @user.name, email: @user.email, phrase: @user.phrase } }, status: 200
   end
 
   def logoff
