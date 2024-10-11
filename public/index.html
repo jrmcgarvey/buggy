@@ -116,6 +116,12 @@
             }).then((response) => {
                 response.json().then((js) => {
                     message.textContent = js.message
+    
+                    if (response.status === 201) {
+                      name2.textContent = "Name: " + js.user.name
+                      email2.textContent = "Email: " + js.user.email
+                      phrase2.textContent = "Phrase: " + js.user.phrase
+                    }
                 })
             })
             .catch((err) => {
@@ -169,7 +175,7 @@
                 response.json().then((js) => {
                     respHash = js
                     if (response.status === 200) {
-                        phrase2.textContent = respHash.phrase
+                        phrase2.textContent = "Phrase: " + respHash.phrase
                     } else {
                         message.textContent = respHash.message
                     }
