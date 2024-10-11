@@ -28,12 +28,14 @@ class UsersController < ApplicationController
     #
     # if users.empty?
     #   render json: { message: 'Authentication failed.' }, status: 401
+    @user = nil
     begin
       @user = User.find_by_email(logon_params[:email].downcase)
     rescue ActiveRecord::RecordNotFound
       @user = nil
     end
-    if !@user | !@user.authenticate(logon_params[:password])
+    puts('user',@user)
+    if !@user || !@user.authenticate(logon_params[:password])
       render json: { message: 'Authentication failed.' }, status: 401
     else
       # @user = users[0]
@@ -46,7 +48,7 @@ class UsersController < ApplicationController
       # end of Postman workaround
       cookies['JWT'] =
         { value: token, same_site: :None, secure: secure_cookie, partitioned: true, httponly: true }
-      cookies['CSRF_TOKEN'] = { value: csrf_token, same_site: :Strict, secure: secure_cookie }
+      cookies['CSRF_TOKEN'] = { value: csrf_token, same_site: :Lax, secure: secure_cookie }
       @user.reload
       @user.phrase = '' unless @user.phrase
       render json: { user: { name: @user.name, phrase: @user.phrase } }, status: 201
@@ -54,10 +56,9 @@ class UsersController < ApplicationController
   end
 
   def setphrase
-    phrase_params.phrase = '' unless phrase_params['phrase']
-    @user.update(phrase: phrase_params['phrase'])
+    @user.update(phrase_params, {validate: false})
     render json: { message: 'The phrase was updated.',
-                   user: { name: @user.name, phrase: phrase_params['phrase'] } }, status: 200
+                   user: { name: @user.name, phrase: @user.phrase } }, status: 200
   end
 
   def getuser
@@ -80,7 +81,8 @@ class UsersController < ApplicationController
   end
 
   def phrase_params
-    params.permit(:phrase)
+    params[:phrase] = '' unless params[:phrase]
+    {phrase: params[:phrase]}
   end
 
   def user_logged_in?
@@ -95,7 +97,7 @@ class UsersController < ApplicationController
     end
     puts(decoded_token)
     begin
-      @user = User.find_by_id(decoded_token[0]['id'])
+      @user = User.find(decoded_token[0]['id'].to_s)
     rescue ActiveRecord::RecordNotFound
       return render json: { message: 'Invalid user specified.' }, status: 401
     end

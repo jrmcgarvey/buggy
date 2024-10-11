@@ -4,7 +4,7 @@ class User < ApplicationRecord
     /\A[a-zA-Z]+(([\'\,\.\- ][a-zA-Z ])?[a-zA-Z]*)*\z/ , message: "Please enter a valid name" }
     validates :email, presence: true, uniqueness: true, format: { 
         with: /\A[A-Za-z0-9+_.-]+@([A-Za-z0-9]+\.)+[A-Za-z]{2,6}\z/ , message: "Please enter a valid email address"}
-    validates :password, password_strength: true
+    validates :password, password_strength: true, if: :password
     before_save :phrase_escape
 
     private
